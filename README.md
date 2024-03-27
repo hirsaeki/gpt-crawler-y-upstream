@@ -1,196 +1,82 @@
 # GPT Crawler
 
-※これは以下のリポジトリをフォークしたものです。READMEに関しては、フォーク元のものを日本語訳しております。
+GPTクローラーは、指定されたURLまたは複数のURLからデータを収集し、カスタムGPT（OpenAIの自然言語処理モデル）を作成するための知識ファイルを生成するためのツールです。
 
-https://github.com/builderio/gpt-crawler
+クロール実行を示すGIF
 
-GPTクローラーは、あるURLまたは複数のURLからデータを収集し、カスタムGPT（OpenAIの自然言語処理モデル）を作成するための知識ファイルを生成するためのツールです。
+## 特徴
 
-![クロール実行を示すGIF](https://github.com/BuilderIO/gpt-crawler/assets/844291/feb8763a-152b-4708-9c92-013b5c70d2f2)
+- 指定したURLやURLパターンに一致するページをクロールし、指定したCSSセレクタで抽出したテキストデータを収集
+- 収集したデータをJSONファイルに出力し、OpenAIのカスタムGPTやカスタムアシスタントの学習データとして利用可能
+- クロール設定をコードまたはAPIで柔軟に指定可能
+- Dockerを使ったコンテナ化にも対応
 
-- [GPT Crawler](#gpt-crawler)
-  - [例](#例)
-  - [始め方](#始め方)
-    - [ローカルでの実行](#ローカルでの実行)
-      - [リポジトリをクローンする](#リポジトリをクローンする)
-      - [依存関係をインストール](#依存関係をインストール)
-      - [クローラーを設定する](#クローラーを設定する)
-      - [クローラーを実行する](#クローラーを実行する)
-    - [別の方法](#別の方法)
-      - [Dockerを使ってコンテナで実行する](#dockerを使ってコンテナで実行する)
-    - [OpenAIにデータをアップロードする](#openaiにデータをアップロードする)
-      - [カスタムGPTを作成する](#カスタムgptを作成する)
-      - [カスタムアシスタントを作成する](#カスタムアシスタントを作成する)
-  - [Contributing](#contributing)
-
-## 例
-
-[こちらはカスタムGPT](https://chat.openai.com/g/g-kywiqipmR-builder-io-assistant)です。Builder.ioのドキュメントにあるURLを提供するだけで、[Builder.io](https://www.builder.io)の使い方や統合方法についての質問に答えるのを速やかに手伝ってくれます。
-
-このプロジェクトはドキュメントをクロールし、カスタムGPTに入力可能なファイルを出力します。
-
-[自分でも試してみましょう](https://chat.openai.com/g/g-kywiqipmR-builder-io-assistant)。サイトにBuilder.ioを統合する方法について質問してください。
-
-> この機能にアクセスするには有料のChatGPTプランが必要な場合があります。
-
-## 始め方
+## 使い方
 
 ### ローカルでの実行
 
-#### リポジトリをクローンする
+#### 前提条件
 
-Node.js >= 16がインストールされていることを確認してください。
+- Node.js >= 16がインストールされていること
 
-```sh
+#### インストール
+
+1. リポジトリをクローンします。
+
+```bash
 git clone https://github.com/builderio/gpt-crawler
 ```
 
-#### 依存関係をインストール
+2. 依存関係をインストールします。
 
-```sh
-npm i
-```
-もしくは
-```sh
+```bash
+cd gpt-crawler
 npm install
 ```
 
-#### クローラーを設定する
+#### 設定
 
-[config.ts](config.ts) を開いて、プロパティを変更してください。
+`config.ts` ファイルを開き、クロールの設定を行います。主な設定項目は以下の通りです。
 
-例えば、カスタムGPTを作成するためにBuilder.ioのドキュメントをクロールするには、次のように設定を書きます。
+- `url`: クロールを開始するURL
+- `match`: クロール対象とするURLのパターン
+- `selector`: テキストデータを抽出するCSSセレクタ
+- `maxPagesToCrawl`: クロールする最大ページ数
+- `outputFileName`: 出力ファイル名
 
-```ts
-export const defaultConfig: Config = {
-  url: "https://www.builder.io/c/docs/developers",
-  match: "https://www.builder.io/c/docs/**",
-  selector: `.docs-builder-container`,
-  maxPagesToCrawl: 50,
-  outputFileName: "output.json",
-};
-```
+#### 実行
 
-```ts
-<<<<<<< HEAD
-export const defaultConfig: Config = {
-  url: "https://www.builder.io/c/docs/developers",
-  match: "https://www.builder.io/c/docs/**",
-  maxPagesToCrawl: 50,
-  outputFileName: "output.json",
-  waitTime: 1000,
-  onVisitPage: async ({ visitPageWaitTime }) => {
-    await new Promise(resolve => setTimeout(resolve, visitPageWaitTime ?? 1000));
-  },
-  userAgent: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-=======
-type Config = {
-  /** URL to start the crawl, if sitemap is provided then it will be used instead and download all pages in the sitemap */
-  url: string;
-  /** Pattern to match against for links on a page to subsequently crawl */
-  match: string;
-  /** Selector to grab the inner text from */
-  selector: string;
-  /** Don't crawl more than this many pages */
-  maxPagesToCrawl: number;
-  /** File name for the finished data */
-  outputFileName: string;
-  /** Optional resources to exclude
-   *
-   * @example
-   * ['png','jpg','jpeg','gif','svg','css','js','ico','woff','woff2','ttf','eot','otf','mp4','mp3','webm','ogg','wav','flac','aac','zip','tar','gz','rar','7z','exe','dmg','apk','csv','xls','xlsx','doc','docx','pdf','epub','iso','dmg','bin','ppt','pptx','odt','avi','mkv','xml','json','yml','yaml','rss','atom','swf','txt','dart','webp','bmp','tif','psd','ai','indd','eps','ps','zipx','srt','wasm','m4v','m4a','webp','weba','m4b','opus','ogv','ogm','oga','spx','ogx','flv','3gp','3g2','jxr','wdp','jng','hief','avif','apng','avifs','heif','heic','cur','ico','ani','jp2','jpm','jpx','mj2','wmv','wma','aac','tif','tiff','mpg','mpeg','mov','avi','wmv','flv','swf','mkv','m4v','m4p','m4b','m4r','m4a','mp3','wav','wma','ogg','oga','webm','3gp','3g2','flac','spx','amr','mid','midi','mka','dts','ac3','eac3','weba','m3u','m3u8','ts','wpl','pls','vob','ifo','bup','svcd','drc','dsm','dsv','dsa','dss','vivo','ivf','dvd','fli','flc','flic','flic','mng','asf','m2v','asx','ram','ra','rm','rpm','roq','smi','smil','wmf','wmz','wmd','wvx','wmx','movie','wri','ins','isp','acsm','djvu','fb2','xps','oxps','ps','eps','ai','prn','svg','dwg','dxf','ttf','fnt','fon','otf','cab']
-   */
-  resourceExclusions?: string[];
-  /** Optional maximum file size in megabytes to include in the output file */
-  maxFileSize?: number;
-  /** Optional maximum number tokens to include in the output file */
-  maxTokens?: number;
->>>>>>> upstream/main
-};
-```
+以下のコマンドでクロールを実行します。
 
-利用可能なすべてのオプションについて説明します。
-
-```ts
-type Config = {
-  // クロールを開始するURL
-  url: string;
-  // このパターンに一致するリンクのみをクロール対象とする
-  match: string | string[];
-  // このセレクタで指定された要素からインナーテキストを取得する
-  selector: string;
-  // 最大でこの数のページをクロールする
-  maxPagesToCrawl: number;
-  // クロール結果を保存するファイル名
-  outputFileName: string;
-  // 必要に応じて設定されるクッキー
-  cookie?: { name: string; value: string };
-  // 各ページ訪問時に実行されるオプショナルな関数
-  onVisitPage?: (options: {
-    page: Page;
-    pushData: (data: any) => Promise<void>;
-    visitPageWaitTime?: number;
-  }) => Promise<void>;
-  // セレクタが表示されるまで待機するオプショナルなタイムアウト
-  waitForSelectorTimeout?: number;
-  // 使用するオプショナルなユーザーエージェント
-  userAgent?: string;
-  // 各ページの読み込み間のオプショナルな待ち時間
-  waitTime?: number;
-};
-```
-
-#### クローラーを実行する
-
-```sh
+```bash
 npm start
 ```
-もしくは
-```sh
-npm run start:cross-env
-```
 
-### 別の方法
+クロールが完了すると、指定した出力ファイル名でJSONファイルが生成されます。
 
-#### [Dockerを使ってコンテナで実行する](./containerapp/README.md)
+### Dockerを使った実行
 
-`output.json` をコンテナ化された実行で得るには、`containerapp` ディレクトリに移動します。上記と同じように `config.ts` を修正し、`data` フォルダに `output.json` ファイルが生成されるはずです。注：`containerapp` フォルダ内の `config.ts` ファイルにある `outputFileName` プロパティは、コンテナで動作するように設定されています。
+Dockerを使ってコンテナ化された環境でクロールを実行することもできます。詳細は [containerapp/README.md](./containerapp/README.md) を参照してください。
 
-### OpenAIにデータをアップロードする
+### APIサーバーとしての実行
 
-クロールはこのプロジェクトのルートに `output.json` というファイルを生成します。それを[OpenAIにアップロード](https://platform.openai.com/docs/assistants/overview)して、カスタムアシスタントやカスタムGPTを作成します。
+GPT CrawlerをAPIサーバーとして実行することもできます。`/crawl` エンドポイントにPOSTリクエストを送信し、設定をJSONで指定することでクロールを実行できます。APIドキュメントは `/api-docs` エンドポイントで提供されています。
 
-#### カスタムGPTを作成する
+## OpenAIへのデータアップロード
 
-生成された知識にUIでアクセスし、他の人と簡単に共有できるオプションを使用します
+生成されたJSONファイルをOpenAIにアップロードすることで、カスタムGPTやカスタムアシスタントを作成できます。
 
-> 注：現在カスタムGPTを作成して使用するには、有料のChatGPTプランが必要な場合があります。
+1. [OpenAIのWebサイト](https://platform.openai.com/assistants) にアクセスします。
+2. "Create a GPT" または "Create an Assistant" を選択します。
+3. "Upload a file" を選択し、生成したJSONファイルをアップロードします。
 
-1. [https://chat.openai.com/](https://chat.openai.com/) にアクセスします。
-2. 左下隅にあるあなたの名前をクリックします。
-3. メニューから「My GPTs」を選択します。
-4. 「Create a GPT」を選択します。
-5. 「Configure」を選択します。
-6. 「Knowledge」の下で「Upload a file」を選択し、生成したファイルをアップロードします。
+## ライセンス
 
-![カスタムGPTをアップロードする方法のGIF](https://github.com/BuilderIO/gpt-crawler/assets/844291/22f27fb5-6ca5-4748-9edd-6bcf00b408cf)
+このプロジェクトは ISC ライセンスの下で公開されています。詳細は [LICENSE](./LICENSE) ファイルを参照してください。
 
-#### カスタムアシスタントを作成する
+## 貢献
 
-生成した知識にAPIアクセスし、製品に統合できるこのオプションを使用します。
-
-1. [https://platform.openai.com/assistants](https://platform.openai.com/assistants) にアクセスします。
-2. "+ Create" をクリックします。
-3. "upload" を選択して、生成したファイルをアップロードします。
-
-![アシスタントへのアップロード方法のGIF](https://github.com/BuilderIO/gpt-crawler/assets/844291/06e6ad36-e2ba-4c6e-8d5a-bf329140de49)
-
-## Contributing
-
-Know how to make this project better? Send a PR!
-
-<br>
-<br>
+プルリクエストや改善提案は大歓迎です。バグ報告や機能リクエストは、Issueからお願いします。
 
 <p align="center">
    <a href="https://www.builder.io/m/developers">
@@ -201,4 +87,26 @@ Know how to make this project better? Send a PR!
    </a>
 </p>
 
-また、このリポジトリのフォーク元である、Builder.ioの開発者の方々に感謝します。
+また、このリポジトリのフォーク元である、Builder.ioの開発者の方々に感謝します。[1][2][3][4][5][6][7][8][9][10][11][12][13][14][15][16][17][18][19][20]
+
+Citations:
+[1] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/106256/9d5871fe-a866-4b58-a66c-970d400e7b4b/gpt-crawler-y-upstream_project_summary.xml
+[2] https://blog.csdn.net/weixin_43896318/article/details/122809780
+[3] https://www.cnblogs.com/henuliulei/p/14710316.html
+[4] https://github.com/Labmem003/README.md-Sample
+[5] https://www.makeareadme.com
+[6] https://www.cnblogs.com/xiang--liu/p/9710296.html
+[7] https://whiterobe.github.io/TIC2019GitTrain/articles/how_to_write_markdown.html
+[8] https://yuuichung.github.io/2018/06/06/hexo-readme/
+[9] https://docs.github.com/zh/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+[10] https://www.freecodecamp.org/chinese/news/how-to-write-a-good-readme-file/
+[11] https://cpp-learning.com/readme/
+[12] https://deeeet.com/writing/2014/07/31/readme/
+[13] https://qiita.com/shun198/items/c983c713452c041ef787
+[14] https://mazhuang.org/2017/09/01/markdown-odd-skills/
+[15] https://appdev-room.com/swift-github-readme
+[16] https://qiita.com/autotaker1984/items/bce70c8c67a8f6fb1b9d
+[17] https://docs.github.com/ja/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+[18] https://www.freecodecamp.org/japanese/news/how-to-write-a-good-readme-file/
+[19] https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+[20] https://github.com/selfteaching/markdown-writing-with-mixed-cn-en/blob/master/README.md
