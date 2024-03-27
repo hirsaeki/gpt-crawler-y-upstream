@@ -93,24 +93,36 @@ export async function crawl(config: Config) {
           if (config.crawlInsideSelector && config.selector) {
             const selectedElement = await page.$(config.selector);
             if (selectedElement) {
-              const links = await selectedElement.$$eval('a[href]', (anchors: Element[]) =>
-                anchors
-		  .map((a: Element) => a.getAttribute('href'))
-		  .filter((href): href is string => href !== null)
+              const links = await selectedElement.$$eval(
+                "a[href]",
+                (anchors: Element[]) =>
+                  anchors
+                    .map((a: Element) => a.getAttribute("href"))
+                    .filter((href): href is string => href !== null),
               );
               await enqueueLinks({
-                globs: typeof config.match === "string" ? [config.match] : config.match,
+                globs:
+                  typeof config.match === "string"
+                    ? [config.match]
+                    : config.match,
                 exclude:
-                  typeof config.exclude === "string" ? [config.exclude] : config.exclude ?? [],
-		urls: links,
+                  typeof config.exclude === "string"
+                    ? [config.exclude]
+                    : config.exclude ?? [],
+                urls: links,
                 baseUrl: request.loadedUrl,
               });
             }
           } else {
             await enqueueLinks({
-              globs: typeof config.match === "string" ? [config.match] : config.match,
+              globs:
+                typeof config.match === "string"
+                  ? [config.match]
+                  : config.match,
               exclude:
-                typeof config.exclude === "string" ? [config.exclude] : config.exclude ?? [],
+                typeof config.exclude === "string"
+                  ? [config.exclude]
+                  : config.exclude ?? [],
             });
           }
         },
