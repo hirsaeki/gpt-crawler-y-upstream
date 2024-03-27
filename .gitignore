@@ -16,3 +16,7 @@ storage
 *.json
 .env
 pnpm-lock.yaml
+
+# exclude working files
+/gpt-crawler-y-upstream_project_summary.*
+/config.ts
