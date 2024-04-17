@@ -31,7 +31,7 @@ export const configSchema = z.object({
    * @example ".docs-builder-container"
    * @default ""
    */
-  selector: z.string().optional(),
+  selector: z.string().or(z.array(z.string())),
   /**
    * Don't crawl more than this many pages
    * @default 50
@@ -85,6 +85,11 @@ export const configSchema = z.object({
    * @example 5000
    */
   maxTokens: z.number().int().positive().optional(),
+  /**
+   * If true, only crawl links within the selector and its descendants
+   * @default false
+   */
+  crawlInSelector: z.boolean().default(false),
 });
 
 export type Config = z.infer<typeof configSchema>;

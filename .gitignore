@@ -16,3 +16,10 @@ storage
 *.json
 .env
 pnpm-lock.yaml
+
+# summary_generator's filw
+/*xml.txt
+
+# hide using config
+/config.ts
+/.tool-versions
