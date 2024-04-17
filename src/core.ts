@@ -40,9 +40,10 @@ export async function crawl(config: Config) {
             `Crawling: Page ${pageCounter} / ${config.maxPagesToCrawl} - URL: ${request.loadedUrl}...`,
           );
 
-          // セレクターが文字列の場合は1要素の配列に変換
           let html = "";
+          // セレクターがある場合はマッチするセレクターのみ処理し、ない場合はページ全体
           if (config.selector) {
+            // セレクターが文字列の場合は1要素の配列に変換
             const selectors =
               typeof config.selector === "string"
                 ? [config.selector]
@@ -64,7 +65,11 @@ export async function crawl(config: Config) {
               // 複数マッチする要素のテキストを取得し、改行で連結
               const elements = await page.$$(selector);
               for (const el of elements) {
-                html += (await el.innerText()) + "\n";
+                // 空白文字と改行文字だけだった場合、追加しない
+                const text = await el.innerText();
+                if (!/^[\s\n]*$/.test(text)) {
+                  html += text + "\n";
+                }
               }
             }
           } else {
@@ -77,33 +82,63 @@ export async function crawl(config: Config) {
             await config.onVisitPage({ page, pushData });
           }
 
-          if (config.crawlInSelector) {
-            for (const selector of selectors) {
-              await page.evaluate(
-                (selector, enqueueLinks) => {
-                  const container = document.querySelector(selector);
-                  if (container) {
-                    const links = container.querySelectorAll("a[href]");
-                    links.forEach((link) => {
-                      enqueueLinks({ url: link.href });
-                    });
+          let currentDepth = request.userData?.queueDepth ?? 0;
+          if (currentDepth < (config.maxDepthToCrawl ?? 10)) {
+            currentDepth++;
+            if (config.crawlInSelector && config.selector) {
+              const selectors: string[] =
+                typeof config.selector === "string"
+                  ? [config.selector]
+                  : config.selector;
+              const links = await page.evaluate((selectors: string[]) => {
+                const linkSet = new Set<string>();
+                for (const selector of selectors) {
+                  const elements = document.querySelectorAll(selector);
+                  for (const el of elements) {
+                    const links = el.querySelectorAll("a[href]");
+                    for (const link of links) {
+                      linkSet.add((link as HTMLAnchorElement).href);
+                    }
                   }
+                }
+                return Array.from(linkSet);
+              }, selectors);
+
+              await enqueueLinks({
+                urls: links,
+                globs:
+                  typeof config.match === "string"
+                    ? [config.match]
+                    : config.match,
+                exclude:
+                  typeof config.exclude === "string"
+                    ? [config.exclude]
+                    : config.exclude ?? [],
+                userData: {
+                  queueDepth: currentDepth,
                 },
-                selector,
-                enqueueLinks,
-              );
+              });
+            } else {
+              await enqueueLinks({
+                globs:
+                  typeof config.match === "string"
+                    ? [config.match]
+                    : config.match,
+                exclude:
+                  typeof config.exclude === "string"
+                    ? [config.exclude]
+                    : config.exclude ?? [],
+                userData: {
+                  queueDepth: currentDepth,
+                },
+              });
             }
           } else {
-            await enqueueLinks({
-              globs:
-                typeof config.match === "string"
-                  ? [config.match]
-                  : config.match,
-              exclude:
-                typeof config.exclude === "string"
-                  ? [config.exclude]
-                  : config.exclude ?? [],
-            });
+            log.info(
+              `Skipping crawling as depth limit of ${
+                config.maxDepthToCrawl ?? 10
+              } reached`,
+            );
           }
         },
         maxRequestsPerCrawl: config.maxPagesToCrawl,
