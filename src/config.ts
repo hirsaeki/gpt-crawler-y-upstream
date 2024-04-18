@@ -95,7 +95,12 @@ export const configSchema = z.object({
    * @default 10
    */
   maxDepthToCrawl: z.number().int().positive().optional(),
-  // ...
+  /**
+   * Enable query selecter Deep (Inside shadowDOM)
+   * @default false
+   */
+  deepQuerySelectorAll: z.boolean().optional(),
+
 });
 
 export type Config = z.infer<typeof configSchema>;
