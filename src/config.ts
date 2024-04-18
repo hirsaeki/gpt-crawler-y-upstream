@@ -100,7 +100,6 @@ export const configSchema = z.object({
    * @default false
    */
   deepQuerySelectorAll: z.boolean().optional(),
-
 });
 
 export type Config = z.infer<typeof configSchema>;

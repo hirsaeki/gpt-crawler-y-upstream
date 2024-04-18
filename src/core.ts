@@ -10,7 +10,11 @@ import { PathLike } from "fs";
 let pageCounter = 0;
 let crawler: PlaywrightCrawler;
 
-async function deepQuerySelectorAll(context: Page | Frame, selector: string, shadowSelector?: string): Promise<ElementHandle<Node>[]> {
+async function deepQuerySelectorAll(
+  context: Page | Frame,
+  selector: string,
+  shadowSelector?: string,
+): Promise<ElementHandle<Node>[]> {
   const elements = await context.$$(selector);
   const results: ElementHandle<Node>[] = [];
 
@@ -18,19 +22,29 @@ async function deepQuerySelectorAll(context: Page | Frame, selector: string, sha
     results.push(el);
 
     try {
-      const shadowRoot = await el.evaluateHandle((el: Element) => el.shadowRoot);
+      const shadowRoot = await el.evaluateHandle(
+        (el: Element) => el.shadowRoot,
+      );
       if (shadowRoot) {
         const shadowElement = shadowRoot.asElement();
         if (shadowElement !== null) {
           const shadowFrame = await shadowElement.contentFrame();
           if (shadowFrame !== null) {
-            const shadowElements = await deepQuerySelectorAll(shadowFrame, shadowSelector || selector);
+            const shadowElements = await deepQuerySelectorAll(
+              shadowFrame,
+              shadowSelector || selector,
+            );
             results.push(...shadowElements);
           }
         }
       }
     } catch (e) {
-      if (!(e instanceof Error) || !e.message.includes("Cannot read properties of null (reading 'shadowRoot')")) {
+      if (
+        !(e instanceof Error) ||
+        !e.message.includes(
+          "Cannot read properties of null (reading 'shadowRoot')",
+        )
+      ) {
         console.error("Unexpected error in deepQuerySelectorAll:", e);
       }
     }
@@ -38,7 +52,7 @@ async function deepQuerySelectorAll(context: Page | Frame, selector: string, sha
 
   return results;
 }
-    
+
 export async function waitForXPath(page: Page, xpath: string, timeout: number) {
   await page.waitForFunction(
     (xpath) => {
@@ -79,7 +93,7 @@ export async function crawl(config: Config) {
                 : config.selector;
 
             for (const selector of selectors) {
-	      try {
+              try {
                 if (selector.startsWith("/")) {
                   await waitForXPath(
                     page,
@@ -91,21 +105,21 @@ export async function crawl(config: Config) {
                     timeout: config.waitForSelectorTimeout ?? 1000,
                   });
                 }
-	      } catch (error) {
-	         console.log(`Selector not found: ${selector}`);
-	      }
+              } catch (error) {
+                console.log(`Selector not found: ${selector}`);
+              }
 
               // 複数マッチする要素のテキストを取得し、改行で連結
-	      let elements: ElementHandle<Node>[];
+              let elements: ElementHandle<Node>[];
               if (config.deepQuerySelectorAll) {
-		elements = await deepQuerySelectorAll(page, selector)
-	      } else {
+                elements = await deepQuerySelectorAll(page, selector);
+              } else {
                 elements = await page.$$(selector);
-              } 
+              }
               for (const el of elements) {
-		const text = await el.evaluate((node: Node) => {
-		  return node.textContent?.trim() || '';
-		});
+                const text = await el.evaluate((node: Node) => {
+                  return node.textContent?.trim() || "";
+                });
                 // 空白文字と改行文字だけだった場合、追加しない
                 if (text !== "") {
                   html += text + "\n";
@@ -116,9 +130,9 @@ export async function crawl(config: Config) {
             html = await page.evaluate(() => document.body.innerText);
           }
 
-	  if (html.trim() !== "") {
+          if (html.trim() !== "") {
             await pushData({ title, url: request.loadedUrl, html });
-	  }
+          }
 
           if (config.onVisitPage) {
             await config.onVisitPage({ page, pushData });
@@ -145,6 +159,18 @@ export async function crawl(config: Config) {
                 }
                 return Array.from(linkSet);
               }, selectors);
+
+              if (config.deepQuerySelectorAll) {
+                for (const selector of selectors) {
+                  const deepLinks = await deepQuerySelectorAll(page, selector);
+                  const deepLinkHrefs = await Promise.all(
+                    deepLinks.map(async (link) => {
+                      return await link.evaluate((a: HTMLAnchorElement) => a.href);
+                    })
+                  );
+                  links.push(...deepLinkHrefs);
+                }
+              }
 
               await enqueueLinks({
                 urls: links,
