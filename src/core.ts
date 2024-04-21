@@ -165,8 +165,10 @@ export async function crawl(config: Config) {
                   const deepLinks = await deepQuerySelectorAll(page, selector);
                   const deepLinkHrefs = await Promise.all(
                     deepLinks.map(async (link) => {
-                      return await link.evaluate((a: HTMLAnchorElement) => a.href);
-                    })
+                      return await link.evaluate(
+                        (a: HTMLAnchorElement) => a.href,
+                      );
+                    }),
                   );
                   links.push(...deepLinkHrefs);
                 }
